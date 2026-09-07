@@ -125,9 +125,21 @@ This bundle expects up to three, in this order:
 
 The third has to be online, because the server signs with it. The second exists precisely
 because the third is online: if this machine is compromised, an offline key ranked above it
-is what lets you clobber whatever was signed. Generate it somewhere else and paste only the
-`did:key:` public half into `pds.env` — `setup.sh` will not generate it for you, because a
-key this machine generated is a key this machine has held.
+is what lets you clobber whatever was signed. `setup.sh` will not generate it for you,
+because a key this machine generated is a key this machine has held — so generate it
+elsewhere and paste only the `did:key:` public half into `pds.env`:
+
+```sh
+./scripts/generate-recovery-key.sh          # on your laptop, not on the node
+```
+
+It prints both halves and writes nothing. It also checks its own encoding against a known
+answer before generating anything, because a `did:key:` that is subtly wrong does not fail —
+it goes into the config looking correct and is discovered on the day you need it.
+
+Put the private half somewhere you can reach **within 72 hours**, since that is the window
+in which this key can undo what a lower one signed. A password manager is the usual right
+answer. A safe you visit twice a year is not.
 
 The first is the one that matters if you are running this for other people. It is theirs,
 it outranks yours, and it means they can leave without your cooperation. Note what it does
