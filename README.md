@@ -106,6 +106,35 @@ restores the live backups into a scratch directory, boots a second server agains
 checks that every account resolves. Run it after standing the node up and after any change
 to the replication config.
 
+## The keys, and who holds them
+
+An identity carries an ordered list of rotation keys, and a key ranked higher can undo what
+a lower one signed — within 72 hours of it happening, which is worth knowing before you need
+it. A server creating an account sets **one** key by default: its own. That is the whole of
+it unless somebody arranges otherwise, and it means a hosted account is an account its host
+holds the only key to.
+
+This bundle expects up to three, in this order:
+
+| Rank | Key | Held by |     |
+| --- | --- | --- | --- |
+| 1 | `recoveryKey`, passed at account creation | the account holder |     |
+| 2 | `PDS_RECOVERY_DID_KEY` | the operator, **offline** |     |
+| 3 | `PDS_PLC_ROTATION_KEY_…` in `pds.env` | this machine |     |
+|  |  |  |     |
+
+The third has to be online, because the server signs with it. The second exists precisely
+because the third is online: if this machine is compromised, an offline key ranked above it
+is what lets you clobber whatever was signed. Generate it somewhere else and paste only the
+`did:key:` public half into `pds.env` — `setup.sh` will not generate it for you, because a
+key this machine generated is a key this machine has held.
+
+The first is the one that matters if you are running this for other people. It is theirs,
+it outranks yours, and it means they can leave without your cooperation. Note what it does
+and does not do: it moves an **identity**. It does not move a repository, because fetching
+that means asking the server being left. Anyone hosting identities for other people owes
+them an export as well as a key, or the exit only works when everybody is being agreeable.
+
 ## Being on the network is a separate, deliberate act
 
 `PDS_CRAWLERS` is empty here, and that is the one place this bundle disagrees with the
