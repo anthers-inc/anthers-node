@@ -101,6 +101,19 @@ Put the file backup on a timer; the replication runs continuously as part of the
 0 * * * * /path/to/anthers-node/scripts/backup-files.sh
 ```
 
+### The node can delete its own backups
+
+⚠️ Worth understanding before you rely on any of this: the credential in `pds.env` can
+**write and delete** in the backup bucket, because replication needs to expire old segments.
+So whoever gets root on this machine can also destroy the backups that exist to survive
+exactly that event. Nothing on the node can fix that — a credential able to clean up after
+itself is able to delete everything.
+
+The fix belongs on the bucket. Turn on **object versioning** and set a lifecycle rule that
+keeps non-current versions for as long as you would want to roll back — a deletion then
+becomes a soft one you can recover from, and the node is no longer able to make its own
+history unrecoverable. Do this before the node holds anything you would miss.
+
 **A backup that has never been restored is not a backup.** `scripts/verify-restore.sh`
 restores the live backups into a scratch directory, boots a second server against them, and
 checks that every account resolves. Run it after standing the node up and after any change
