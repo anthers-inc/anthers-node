@@ -1,0 +1,28 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+#
+# TLS for the node, and for every handle it issues.
+#
+# ⭐ **On-demand TLS is not an optimization here, it is what makes a handle namespace
+# work.** A handle on this network is a domain name, so a server issuing handles has to
+# answer on a hostname per account — and it cannot know them in advance, because they are
+# created by people signing up. Enumerating them into a certificate list would mean
+# reissuing on every signup. Instead Caddy asks the server whether a name it has just been
+# asked for is one of ours, and gets a certificate on the spot if it is.
+#
+# 🚨 **`ask` is a gate rather than a formality, and removing it turns this into an open
+# certificate mill.** Without it, anybody who points a DNS record at this machine makes it
+# request a certificate on their behalf, which is rate-limited by the certificate authority
+# and will eventually take the real names down with it.
+{
+	on_demand_tls {
+		ask http://localhost:3000/tls-check
+	}
+}
+
+# The apex answers the protocol; everything under it is somebody's handle.
+*.{$PDS_HOSTNAME}, {$PDS_HOSTNAME} {
+	tls {
+		on_demand
+	}
+	reverse_proxy http://localhost:3000
+}
