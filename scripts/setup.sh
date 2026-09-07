@@ -65,9 +65,12 @@ Before starting anything, three things are still yours to do:
      backup you could not reach without it.
 
 If this node will hold accounts for anybody but you, also set PDS_RECOVERY_DID_KEY — a
-second rotation key, generated somewhere other than here, whose private half never touches
-this machine. It is what you use if the key in step 3 is ever stolen, and it is deliberately
-not generated for you. See "The keys, and who holds them" in the README.
+second rotation key whose private half never touches this machine. It is what you use if
+the key in step 3 is ever stolen, so it is deliberately not generated here:
+
+    ./scripts/generate-recovery-key.sh      # run this on your laptop, not on this box
+
+See "The keys, and who holds them" in the README.
 
 Then:  docker compose --profile unattended up -d
 EOF
