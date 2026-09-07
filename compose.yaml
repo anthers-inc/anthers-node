@@ -1,0 +1,107 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+#
+# An Anthers creator node: a Personal Data Server, TLS in front of it, and continuous
+# backup behind it.
+#
+# 🚨 **Anthers builds no image here, and that is the design rather than an unfinished
+# state.** The server is `ghcr.io/bluesky-social/pds`, which other people maintain. The
+# whole reason a node exists is that a creator who leaves Anthers should be fine, and a
+# node running Anthers' own server software would mean leaving Anthers also meant leaving
+# Anthers' software — portability degrading into *portable as far as our export reaches*.
+#
+# ⚠️ **The media origin is deliberately not here.** A node is a Personal Data Server plus a
+# place to serve large files from, and only the first half is buildable today: what the hub
+# and an origin say to each other is undesigned, and writing the daemon first would produce
+# exactly the implementation whose shape then argues for the protocol. The records half
+# stands alone and is useful alone, so it ships alone.
+#
+#   docker compose --profile unattended up -d     # a creator running one for themselves
+#   docker compose up -d                          # Anthers running one for many
+#
+# The difference between those two commands is the whole difference between the tenancies.
+services:
+  # ─── The server itself ───
+  pds:
+    container_name: anthers-pds
+    # Pinned to a minor line rather than `latest`, so an unattended restart picks up
+    # patches and never a major version whose migrations nobody has read.
+    image: ghcr.io/bluesky-social/pds:0.4
+    # Host networking throughout, following upstream. Caddy needs 80 and 443 to answer the
+    # ACME challenge for a name it has not been told about in advance, which is what makes
+    # a handle namespace possible at all — see the Caddyfile.
+    network_mode: host
+    restart: unless-stopped
+    volumes:
+      - type: bind
+        source: ${PDS_DIR:-/pds}
+        target: /pds
+    env_file:
+      - ${PDS_DIR:-/pds}/pds.env
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/xrpc/_health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+
+  # ─── TLS, and the reason handles work ───
+  caddy:
+    container_name: anthers-caddy
+    image: caddy:2
+    network_mode: host
+    depends_on:
+      - pds
+    restart: unless-stopped
+    # Reads the same file the server does, so the hostname is written down once. The
+    # Caddyfile refers to it as `{$PDS_HOSTNAME}`; a Caddyfile with the name baked in is a
+    # second place to change it and the one people forget.
+    env_file:
+      - ${PDS_DIR:-/pds}/pds.env
+    volumes:
+      - type: bind
+        source: ${PDS_DIR:-/pds}/caddy/data
+        target: /data
+      - type: bind
+        source: ${PDS_DIR:-/pds}/caddy/etc/caddy
+        target: /etc/caddy
+
+  # ─── Continuous backup of every SQLite database under /pds ───
+  litestream:
+    container_name: anthers-litestream
+    image: litestream/litestream:0.5.17
+    restart: unless-stopped
+    depends_on:
+      - pds
+    # ⚠️ NOT host networking. This one talks outbound to object storage and listens for
+    # nothing, so it has no reason to share the host's stack.
+    volumes:
+      - type: bind
+        source: ${PDS_DIR:-/pds}
+        target: /pds
+      - type: bind
+        source: ${PDS_DIR:-/pds}/litestream.yml
+        target: /etc/litestream.yml
+        read_only: true
+    env_file:
+      - ${PDS_DIR:-/pds}/pds.env
+    command: replicate
+
+  # ─── Unattended patching: tenancy 1 only ───
+  # 🚨 **This is the one service whose right answer differs by tenancy, which is why it sits
+  # behind a profile rather than being present or absent from two different files.** A
+  # creator's box has nobody watching it, so an unpatched server is the larger risk and
+  # automatic updates win. Anthers running this for other people does not get to have a
+  # container restart itself at midnight outside anyone's change control, so Anthers omits
+  # the profile and updates deliberately.
+  watchtower:
+    container_name: anthers-watchtower
+    image: ghcr.io/nicholas-fedor/watchtower:latest
+    profiles: ["unattended"]
+    network_mode: host
+    restart: unless-stopped
+    volumes:
+      - type: bind
+        source: /var/run/docker.sock
+        target: /var/run/docker.sock
+    environment:
+      WATCHTOWER_CLEANUP: "true"
+      WATCHTOWER_SCHEDULE: "@midnight"

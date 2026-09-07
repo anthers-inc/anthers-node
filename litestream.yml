@@ -1,0 +1,44 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+#
+# Continuous replication of every SQLite database the server keeps.
+#
+# ⭐ **`watch` is what makes this work at more than one account.** The server keeps three
+# shared databases at the top of `/pds` and then **one more per account**, at
+# `/pds/actors/<shard>/<did>/store.sqlite`, created at the moment somebody signs up. A
+# static list of databases would therefore be complete only until the next signup, and
+# would fail silently — the new account's repository simply would not be backed up, and
+# nothing would say so. Directory watching picks each one up within seconds of its
+# creation.
+#
+# 🚨 **This does NOT back up an account's signing key, and that omission is the sharpest
+# edge on the whole machine.** Beside every `store.sqlite` is a 32-byte `key` file, which is
+# the key the account signs its repository with. It is not a database, so nothing here will
+# ever carry it — and it is the one file on the box that cannot be reconstructed from
+# anything else. Restoring every database without it produces a repository that can be read
+# and never written to again. `scripts/backup-keys.sh` is what carries it, and the restore
+# script refuses to finish without it.
+#
+# ⚠️ **Blobs are not here either, for the opposite reason.** Whatever sits under
+# `PDS_BLOBSTORE_DISK_LOCATION` is large, immutable once written, and wants an object-store
+# sync rather than write-ahead-log replication. `scripts/backup-blobs.sh`.
+dbs:
+  - dir: /pds
+    pattern: "*.sqlite"
+    # Reaches `/pds/actors/<shard>/<did>/store.sqlite`. Without this the three shared
+    # databases are covered and every account's repository is not.
+    recursive: true
+    watch: true
+    replica:
+      type: s3
+      bucket: ${NODE_BACKUP_BUCKET}
+      path: ${NODE_BACKUP_PREFIX}
+      endpoint: ${NODE_BACKUP_ENDPOINT}
+      # S3-compatible stores that do not do regions still want the field set. Cloudflare R2
+      # validates the name and takes `auto`.
+      region: ${NODE_BACKUP_REGION}
+      # 🚨 A credential that may write backups and nothing else. Serving and backup are
+      # separate keys with separate grants on purpose: a leaked serving credential that can
+      # also reach the backups turns one incident into an unrecoverable one, and it is
+      # impossible to retrofit that split after the fact.
+      access-key-id: ${NODE_BACKUP_ACCESS_KEY_ID}
+      secret-access-key: ${NODE_BACKUP_SECRET_ACCESS_KEY}
