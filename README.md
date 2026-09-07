@@ -109,10 +109,24 @@ So whoever gets root on this machine can also destroy the backups that exist to 
 exactly that event. Nothing on the node can fix that — a credential able to clean up after
 itself is able to delete everything.
 
-The fix belongs on the bucket. Turn on **object versioning** and set a lifecycle rule that
-keeps non-current versions for as long as you would want to roll back — a deletion then
-becomes a soft one you can recover from, and the node is no longer able to make its own
-history unrecoverable. Do this before the node holds anything you would miss.
+**What fixes it is a second copy the node holds no credential for.** That is the property to
+aim at, rather than any particular product: if every copy of your data can be reached with
+something stored on the machine, then compromising the machine is enough to destroy all of
+them, and the backups have become part of the same blast radius as the thing they protect.
+
+Two ways to get there, and they are not equivalent:
+
+- **A whole-machine snapshot from your host** — deleting one needs your hosting account,
+  and that credential is not on the node. This also covers `pds.env`, which the object
+  backups deliberately exclude. ⚠️ The same breath: a snapshot puts your rotation key in
+  your host's storage, so it is one more place a key you have been careful with exists.
+- **Object versioning on the bucket**, if your provider offers it, with a lifecycle rule
+  expiring non-current versions. This makes a delete soft instead of final. Check whether
+  your provider actually supports it rather than assuming — not every S3-compatible store
+  does, and a setting you believed in and never verified is worse than one you knew was
+  missing.
+
+Do this before the node holds anything you would miss.
 
 **A backup that has never been restored is not a backup.** `scripts/verify-restore.sh`
 restores the live backups into a scratch directory, boots a second server against them, and
