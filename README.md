@@ -174,6 +174,14 @@ and does not do: it moves an **identity**. It does not move a repository, becaus
 that means asking the server being left. Anyone hosting identities for other people owes
 them an export as well as a key, or the exit only works when everybody is being agreeable.
 
+⚠️ **Seating that key after the account exists requires email on this node**, which is the
+part that is easy to plan around and discover too late. Passing `recoveryKey` at creation is
+free; adding one afterwards goes through `com.atproto.identity.signPlcOperation`, and the
+server refuses that without a token it has **emailed to the account holder**. So a node with
+the email block unset can host accounts perfectly well and cannot let a single one of them
+take custody of its own identity — the exact promise the table above is making. Either pass
+the key at creation, or configure email before you offer anybody a handle.
+
 ## Being on the network is a separate, deliberate act
 
 `PDS_CRAWLERS` is empty here, and that is the one place this bundle disagrees with the
