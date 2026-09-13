@@ -194,10 +194,11 @@ made once and announced, not a line filled in while copying a config.
 ## Why this is promised at all
 
 Managed hosting should be a convenience, never a requirement. A creator-first platform that
-cannot be left is not creator-first — it is a landlord with good manners. The
-[AGPL](https://www.gnu.org/licenses/agpl-3.0.html) that covers
-[the platform](https://github.com/anthers-inc/anthers) is one half of that promise; being
-able to actually run your own is the other, and a license alone does not deliver it.
+cannot be left is not creator-first — it is a landlord with good manners.
+[The platform](https://github.com/anthers-inc/anthers) and this bundle are licensed
+[Apache-2.0](https://www.apache.org/licenses/LICENSE-2.0), so anybody may take the code and
+run it, and that is one half of the promise. Being able to actually run your own is the
+other, and a license alone does not deliver it.
 
 Anthers has not yet started hosting identities, and will not offer to hold anybody's keys
 until moving an identity out demonstrably works. What Anthers is building and when is at
