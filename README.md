@@ -200,8 +200,9 @@ cannot be left is not creator-first — it is a landlord with good manners.
 run it, and that is one half of the promise. Being able to actually run your own is the
 other, and a license alone does not deliver it.
 
-Anthers has not yet started hosting identities, and will not offer to hold anybody's keys
-until moving an identity out demonstrably works. What Anthers is building and when is at
+Anthers hosts identities on `anthers.social` for anybody who asks for one at signup, and
+anybody whose identity it hosts can take the recovery key to it from their settings, which
+is the exit the table above describes. What Anthers is building and when is at
 [anthers.org/roadmap](https://anthers.org/roadmap).
 
 Anthers is a Colorado nonprofit corporation. The platform is free software under the GNU
