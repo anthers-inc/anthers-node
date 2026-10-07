@@ -58,6 +58,14 @@ TIMEOUT_SECS="${TIMEOUT_SECS:-10}"
 # The port is 2465 and it is not a preference: DigitalOcean blocks outbound 25/465/587,
 # and the failure mode of the blocked ports is a hang, not a refusal (the Runbook
 # documents the 44-second silent hang that taught this). Send one short plain-text mail.
+#
+# ⚠️ **The key this uses is the node's own restricted Resend key — the user part of the
+# node's SMTP URL (`PDS_EMAIL_SMTP_URL` in /pds/pds.env), NOT the hub's `RESEND_API_KEY`.**
+# The hub's key sends as anthers.org and lives only in the vault with it; the node's key
+# is restricted to anthers.social (the Runbook's § Mail) and is what this droplet is
+# allowed to say mail from. The env example below reads it from its own line in
+# heartbeat.env; the operator copies it out of the SMTP URL's userinfo when laying the
+# file in — the smtps:// URL is the credential store this box already holds.
 
 send_alert() {
 	local subject="$1"
@@ -106,10 +114,13 @@ BODY=$(cat "${HEARTBEAT_DIR}/.last-body" 2>/dev/null || echo "")
 
 # The hub's overall state, as /health's JSON names it; parse defensively, because a hub
 # that answers 200 with unparseable JSON is a hub being honest about some degradation.
-REPORTED_STATE=""
-if [[ -n "${BODY}" ]]; then
-	REPORTED_STATE=$(printf '%s' "${BODY}" | grep -o '"state":"[a-z]*"' | head -1 | cut -d'"' -f4)
-fi
+# 🚨 `|| true` on the pipeline is load-bearing, not decoration: a /health that answers
+# 200 with NO "state" field (the pre-deepening shape, or any older release behind a
+# rolling deploy) makes grep exit 1 — and under `set -euo pipefail` that would kill the
+# script mid-run, BEFORE the alert and the report ever fire. No match is a fact to
+# handle, not an error to die on: no state field reads as "the hub did not say", and
+# the verdict stays up on a 200.
+REPORTED_STATE=$(printf '%s' "${BODY}" | grep -o '"state":"[a-z]*"' | head -1 | cut -d'"' -f4 || true)
 
 VERDICT="up"
 DETAIL=""
