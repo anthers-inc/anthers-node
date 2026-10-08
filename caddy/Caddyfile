@@ -40,12 +40,14 @@
 #
 # 🚨 **The DNS record for this name must exist and point here** (see the Runbook's § on
 # this page): a Caddyfile site for a name no DNS record carries mints nothing.
+#
+# ⚠️ **No `tls` directive at all, rather than an empty `tls {}` block** — the empty block
+# is invalid Caddyfile syntax ("wrong argument count or unexpected line ending after '}'",
+# learned by crash-looping the live Caddy for twenty seconds on 2026-10-08), and it is not
+# needed: a site address spelling `https://` gets automatic HTTPS with a normally-issued
+# certificate, and this name is named explicitly here (not under the wildcard's
+# `on_demand`), so it provisions at startup like any ordinary first-site cert.
 https://status.anthers.org {
-	tls {
-		# Named explicitly rather than on_demand: the /tls-check gate answers only for
-		# the PDS_HOSTNAME and hosted handles, and this name is neither — by design.
-		# An explicit name is provisioned at startup, one certificate, no gate ask.
-	}
 	encode zstd gzip
 	root * /pds/status
 	file_server
