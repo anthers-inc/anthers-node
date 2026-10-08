@@ -38,6 +38,11 @@
 #
 # Secrets never appear on a command line or in this file: they are read from the env file,
 # which is chmod 0600, same discipline as /pds/pds.env.
+#
+# After the check, verdict report and alerts, this script also regenerates the standalone
+# public status page (scripts/status-page.sh → /pds/status/index.html), so the page at
+# status.anthers.org is exactly as fresh as the outside verdict. See that script for why
+# the page lives here.
 
 set -euo pipefail
 
@@ -177,4 +182,17 @@ else
 	fi
 	write_state "down" "yes"
 	report_upstream "down" "${DETAIL}"
+fi
+
+# ── The public status page, regenerated from this verdict ────────────────────────────
+# Runs last so the page reflects the verdict just written (state file) and the hub's
+# freshest answer. Its failure is never fatal and never alarms: the page going stale is
+# surfaced by its own timestamp, and the heartbeat log catches the stderr.
+
+if [[ -x "${HEARTBEAT_DIR}/status-page.sh" || -x "/opt/anthers-node/scripts/status-page.sh" ]]; then
+	PAGE_SCRIPT="${HEARTBEAT_DIR}/status-page.sh"
+	[[ -x "${PAGE_SCRIPT}" ]] || PAGE_SCRIPT="/opt/anthers-node/scripts/status-page.sh"
+	"${PAGE_SCRIPT}" || echo "heartbeat: status page generation failed — page may be stale" >&2
+else
+	echo "heartbeat: status-page.sh not found — skip regenerating the public page" >&2
 fi
