@@ -63,6 +63,14 @@ services:
       - type: bind
         source: ${PDS_DIR:-/pds}/caddy/etc/caddy
         target: /etc/caddy
+      # The public status page's generated directory. /pds/status exists on the host
+      # beside the heartbeat's files; the container sees only what each bind names, so
+      # the site's `root * /pds/status` would 404 forever without this line — the first
+      # deploy 404'd exactly that way (2026-10-08), a page present on the host and
+      # invisible behind the mount.
+      - type: bind
+        source: ${PDS_DIR:-/pds}/status
+        target: /pds/status
 
   # ─── Continuous backup of every SQLite database under /pds ───
   litestream:
