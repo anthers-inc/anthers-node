@@ -39,6 +39,10 @@ source "${HEARTBEAT_DIR}/heartbeat.env"
 STATUS_PAGE_DIR="${STATUS_PAGE_DIR:-/pds/status}"
 HUB_STATUS_URL="${HUB_STATUS_URL:-https://anthers.org/api/status}"
 PAGE_URL="${PAGE_URL:-https://status.anthers.org}"
+# Own default, deliberately not inherited from heartbeat-check.sh's: that script sets
+# TIMEOUT_SECS as a shell variable and exports nothing, so a child run under `set -u`
+# reads unbound here. This is the 2026-10-08 first-live-run lesson.
+TIMEOUT_SECS="${TIMEOUT_SECS:-10}"
 
 # ── What the page is generated from ─────────────────────────────────────────────────
 
