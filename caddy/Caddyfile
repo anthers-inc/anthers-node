@@ -26,3 +26,32 @@
 	}
 	reverse_proxy http://localhost:3000
 }
+
+# The public status page — served from this droplet on purpose, a failure domain apart
+# from the hub it reports on. The heartbeat's cron regenerates /pds/status/index.html
+# every minute (scripts/status-page.sh), so this site serves a static file and answers
+# whether or not the hub does: the reader checking whether anthers.org is down gets an
+# answer even during the outage the question is about.
+#
+# ⚠️ **The name is not a handle and must not look like one.** It lives outside the
+# wildcard's namespace (`status.anthers.org` does not end in `.anthers.social`), so the
+# on-demand gate below cannot be tricked into minting it — it is named here explicitly,
+# which is the Caddy form of "we meant this one".
+#
+# 🚨 **The DNS record for this name must exist and point here** (see the Runbook's § on
+# this page): a Caddyfile site for a name no DNS record carries mints nothing.
+https://status.anthers.org {
+	tls {
+		# Named explicitly rather than on_demand: the /tls-check gate answers only for
+		# the PDS_HOSTNAME and hosted handles, and this name is neither — by design.
+		# An explicit name is provisioned at startup, one certificate, no gate ask.
+	}
+	encode zstd gzip
+	root * /pds/status
+	file_server
+	header / {
+		# The page answers per minute, never worth caching at an intermediary.
+		Cache-Control "no-cache"
+		-Server
+	}
+}
