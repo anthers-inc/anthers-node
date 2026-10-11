@@ -59,6 +59,41 @@ STATE_FILE="${HEARTBEAT_DIR}/heartbeat.state"
 HUB_HEALTH_URL="${HUB_HEALTH_URL:-https://anthers.org/health}"
 TIMEOUT_SECS="${TIMEOUT_SECS:-10}"
 
+# 🚨 **JSON bodies are encoded, never interpolated.** Every JSON payload this script
+# sends is built by json_escape() below, in pure bash. Nothing in this repository assumes
+# jq (neither setup.sh nor any script installs or calls it), so the escaper leans on no
+# tool at all — and the reason it exists is a live 2026-10-10 outage: when the hub
+# degraded, its detail text carried spoken quotes ("degraded"), the interpolated body
+# stopped being parseable JSON, and the hub's ingest answered 400, so the outside view
+# read "unknown" for the entire time it most needed to speak.
+json_escape() {
+	# Emits a JSON string *value* for "${1}": backslash, double quote, and control
+	# characters escaped, anything else passed through — the result may be placed
+	# inside quotes in a JSON document.
+	local s="${1}"
+	local out="" ch i
+	for ((i = 0; i < ${#s}; i++)); do
+		ch="${s:i:1}"
+		case "${ch}" in
+			'\') out+="\\\\" ;;
+			'"') out+="\\\"" ;;
+			$'\b') out+="\\b" ;;
+			$'\f') out+="\\f" ;;
+			$'\n') out+="\\n" ;;
+			$'\r') out+="\\r" ;;
+			$'\t') out+="\\t" ;;
+			[$'\x01'-$'\x1f'] | $'\x7f')
+				# The rest of the control range as \u00XX: bytes 0x01–0x1f and DEL.
+				local code
+				printf -v code '%04x' "'${ch}"
+				out+="\\u${code}"
+				;;
+			*) out+="${ch}" ;;
+		esac
+	done
+	printf '%s' "${out}"
+}
+
 # ── Mail, through the node's own Resend key ──────────────────────────────────────────
 # The port is 2465 and it is not a preference: DigitalOcean blocks outbound 25/465/587,
 # and the failure mode of the blocked ports is a hang, not a refusal (the Runbook
@@ -80,9 +115,11 @@ send_alert() {
 		return 0
 	fi
 	# A minute is all a curl to Resend needs; a mail that hangs must not wedge the check.
+	# Escaped like every other JSON body here: the degraded alert's text carries quotes,
+	# and an unparsable mail payload fails the one channel that does not need the hub.
 	local payload
 	payload=$(printf '{"from":"Anthers heartbeat <noreply@anthers.social>","to":["%s"],"subject":"%s","text":"%s"}' \
-		"${OPS_ALERT_EMAIL}" "${subject}" "${body}")
+		"$(json_escape "${OPS_ALERT_EMAIL}")" "$(json_escape "${subject}")" "$(json_escape "${body}")")
 	curl -sS --max-time 30 -X POST "https://api.resend.com/emails" \
 		-H "Authorization: Bearer ${RESEND_API_KEY}" \
 		-H "Content-Type: application/json" \
@@ -127,6 +164,10 @@ BODY=$(cat "${HEARTBEAT_DIR}/.last-body" 2>/dev/null || echo "")
 # the verdict stays up on a 200.
 REPORTED_STATE=$(printf '%s' "${BODY}" | grep -o '"state":"[a-z]*"' | head -1 | cut -d'"' -f4 || true)
 
+# The instant the observation above was made, in the shape the hub's ingest passes
+# through as checkedAt — when the check ran, which may differ from when it arrived.
+CHECKED_AT=$(date -u '+%Y-%m-%dT%H:%M:%SZ')
+
 VERDICT="up"
 DETAIL=""
 if [[ "${HTTP_CODE}" == "000" ]]; then
@@ -156,10 +197,15 @@ report_upstream() {
 	fi
 	# The report carries the verdict and a human detail; a failure here is never fatal —
 	# the state file still remembers this verdict, and the next minute's run reports again.
+	# Built with json_escape() like every other body: interpolated quotes in the detail
+	# are what broke the ingest on the degraded case, not auth.
+	local body
+	body=$(printf '{"verdict":"%s","detail":"%s","checkedAt":"%s"}' \
+		"$(json_escape "${verdict}")" "$(json_escape "${detail}")" "${CHECKED_AT}")
 	curl -sS --max-time 10 -X POST "${HUB_HEARTBEAT_URL}" \
 		-H "Authorization: Bearer ${HEARTBEAT_TOKEN}" \
 		-H "Content-Type: application/json" \
-		-d "{\"verdict\":\"${verdict}\",\"detail\":\"${detail}\"}" \
+		-d "${body}" \
 		> /dev/null 2>&1 || true
 }
 
