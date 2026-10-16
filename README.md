@@ -205,5 +205,5 @@ anybody whose identity it hosts can take the recovery key to it from their setti
 is the exit the table above describes. What Anthers is building and when is at
 [anthers.org/roadmap](https://anthers.org/roadmap).
 
-Anthers is a Colorado nonprofit corporation. The platform is free software under the GNU
-Affero General Public License v3.0 or later, and so is this.
+Anthers is a Colorado nonprofit corporation. The platform and this bundle are free
+software under the Apache License 2.0.
