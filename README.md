@@ -203,7 +203,7 @@ other, and a license alone does not deliver it.
 Anthers hosts identities on `anthers.social` for anybody who asks for one at signup, and
 anybody whose identity it hosts can take the recovery key to it from their settings, which
 is the exit the table above describes. What Anthers is building and when is at
-[anthers.org/roadmap](https://anthers.org/roadmap).
+[anthers.wiki/roadmap](https://anthers.wiki/roadmap).
 
 Anthers is a Colorado nonprofit corporation. The platform and this bundle are free
 software under the Apache License 2.0.
