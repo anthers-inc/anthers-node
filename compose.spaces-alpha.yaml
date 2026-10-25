@@ -1,0 +1,38 @@
+# SPDX-License-Identifier: Apache-2.0
+#
+# Anthers' identity node on the atproto Spaces alpha.
+#
+# 🚨 **This is not the bundle's default and must not become one.** `compose.yaml` pins the
+# reference distribution, `ghcr.io/bluesky-social/pds:0.4`, which is what a creator running
+# their own node should run. Alpha software is the opposite of that promise: it changes
+# weekly, its schema may move without a clean migration, and Bluesky's own announcement says
+# not to put real accounts on it. Anthers accepts that for its own node, deliberately, so
+# this override exists and is applied by hand:
+#
+#   docker compose -f compose.yaml -f compose.spaces-alpha.yaml up -d
+#
+# ── Why a digest and not the tag ──────────────────────────────────────────────────────────
+#
+# The tag is `pds-spaces-alpha` and it is rebuilt every Thursday from the
+# `permissioned-data-alpha` branch. Pinning the tag would mean the node changed under us
+# whenever someone restarted it. The digest below is the 2026-10-22 build, whose
+# `org.opencontainers.image.revision` label is `ac0c9f15` — the commit the app was tested
+# against. A bump changes this line and re-runs the drills, nothing else.
+#
+# ── The image lives in a different repository ────────────────────────────────────────────
+#
+# It is `bluesky-social/atproto`, not `bluesky-social/pds`. The `pds` repository is the
+# distribution Anthers' bundle is built from; the `atproto` repository is the reference
+# implementation, and its image is built by the `build-and-push-pds-ghcr` workflow.
+#
+# ── One thing that is not "no new configuration" ─────────────────────────────────────────
+#
+# This image runs as `node` (uid 1000). The reference distribution sets no user at all, so
+# it runs as root, and a `/pds` created by `scripts/setup.sh` is root-owned. Before the
+# first start, `/pds` must belong to 1000:1000 or the server cannot write its data
+# directory. The root-run pieces beside it — Litestream and `scripts/backup-files.sh` —
+# only read `/pds`, so they keep working. A switch back to the reference image is safe the
+# same way, because root reads anything.
+services:
+  pds:
+    image: ghcr.io/bluesky-social/atproto:pds-spaces-alpha@sha256:69f2da2d853d7fe74e78f619b478047c94eadbd28bd5b80d2f51ec5599df1c64
