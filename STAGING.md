@@ -56,6 +56,14 @@ On 2026-10-25 the pinned image itself was the PDS: `sha256:69f2da2d…` running 
 
 The capture still stores the archive as `star.car` with `application/vnd.ipld.car`, and the alpha serves STAR-lite as `application/octet-stream`. Nothing breaks, because a restore replays the record list and the archive is carried opaquely, but the name and content type describe a format the image no longer sends.
 
+## The Node Went Over on 2026-10-25
+
+`anthers.social` runs this pin. The cutover was `/pds` copied to `/pds.pre-alpha-20261025`, the tree chowned to 1000:1000 with `pds.env`, `caddy/` and `heartbeat/` handed back to root, and the server started from the override. It answers `{"version":"0.5.32"}` over TLS and reports `"spacesAlpha":true`, every hosted account's KEM key was published on boot, and Litestream is replicating the migrated databases.
+
+One account logged `cannot publish kem key, account must update its did doc`: `probe-exit.anthers.social`, whose identity left this server. That is the correct answer for an identity the node no longer hosts, not a fault.
+
+The rollback is `/pds.pre-alpha-20261025` plus the unmodified `compose.yaml`: stop `pds`, move the copy back over `/pds`, and start without the override. The databases the alpha migrated are not readable by the reference image, so the rollback is the copy rather than a downgrade.
+
 ## What the Alpha Changed Under Us
 
 The 2026-10-22 build is not the branch state the lab pinned at `3a0b8c6`, and the differences are the app-side work this pin carries:
