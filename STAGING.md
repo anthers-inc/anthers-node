@@ -29,7 +29,22 @@ docker compose -f compose.yaml -f compose.spaces-alpha.yaml up -d
 
 **The image lives in `bluesky-social/atproto`, not `bluesky-social/pds`.** The `pds` repository is the distribution this bundle is built from; the `atproto` repository is the reference implementation. Looking only at `pds` finds 281 tags and none of them spaces-capable, which is how the pin was missed once already.
 
-⚠️ **One thing it does need: `/pds` owned by uid 1000.** The alpha image runs as `node`, where the reference distribution sets no user and runs as root. A `/pds` created by `scripts/setup.sh` is root-owned, so the server cannot create its data directory until `chown -R 1000:1000 /pds` runs. Litestream and `scripts/backup-files.sh` run as root and only read `/pds`, so they are unaffected, and a switch back to the reference image is safe because root reads anything. That ownership is where upstream is heading rather than a workaround to unwind: the spaces image already runs unprivileged, and the reference distribution will need the same ownership when it adopts the same hardening. The reverse drift is the one to remember — a stretch on the root-run image leaves root-owned files behind, and the chown is re-run before returning to this one.
+⚠️ **One thing it does need: `/pds` owned by uid 1000.** The alpha image runs as `node`, where the reference distribution sets no user and runs as root. A `/pds` created by `scripts/setup.sh` is root-owned, so the server cannot create its data directory until the ownership changes.
+
+That ownership is where upstream is heading rather than a workaround to unwind: the spaces image already runs unprivileged, and the reference distribution will need the same ownership when it adopts the same hardening. The reverse drift is the one to remember — a stretch on the root-run image leaves root-owned files behind, and the ownership change is repeated before returning to this one.
+
+**The blanket chown takes more than the data directory, so hand the secrets back afterwards.** `setup.sh` writes `pds.env` with the PLC rotation key and the admin password at `0600`, and the Caddy directory holds the ACME account key. None of it needs to belong to 1000, and the server never reads `pds.env` itself — Docker parses it as the compose env file:
+
+```sh
+chown -R 1000:1000 /pds
+chown root:root /pds/pds.env && chmod 0600 /pds/pds.env
+chown -R root:root /pds/caddy
+chown -R root:root /pds/heartbeat
+```
+
+⚠️ **uid 1000 on that machine belongs to the PDS's data now, not to a person.** The droplet has no such account today, which makes the owner unmapped and harmless; the first human user added to the box would be assigned 1000 and inherit both the data directory and, without the lines above, the rotation key. If a login user is ever wanted there, run the server under a dedicated uid instead — `user: "1001:1001"` in the override, with the tree owned by 1001 — so no assigned user can reach it.
+
+What the change buys is the server not running as root inside its container. What it does not buy is network isolation: the service uses `network_mode: host`, so it still reaches anything listening on the loopback. The bundle's one remaining root-equivalent hole is the `docker.sock` mount on watchtower, which is not running because the `unattended` profile is omitted, and remains a hole if that profile is ever enabled.
 
 ## The Staging Proof
 
