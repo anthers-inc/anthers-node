@@ -29,7 +29,7 @@ docker compose -f compose.yaml -f compose.spaces-alpha.yaml up -d
 
 **The image lives in `bluesky-social/atproto`, not `bluesky-social/pds`.** The `pds` repository is the distribution this bundle is built from; the `atproto` repository is the reference implementation. Looking only at `pds` finds 281 tags and none of them spaces-capable, which is how the pin was missed once already.
 
-⚠️ **One thing it does need: `/pds` owned by uid 1000.** The alpha image runs as `node`, where the reference distribution sets no user and runs as root. A `/pds` created by `scripts/setup.sh` is root-owned, so the server cannot create its data directory until `chown -R 1000:1000 /pds` runs. Litestream and `scripts/backup-files.sh` run as root and only read `/pds`, so they are unaffected, and a switch back to the reference image is safe because root reads anything.
+⚠️ **One thing it does need: `/pds` owned by uid 1000.** The alpha image runs as `node`, where the reference distribution sets no user and runs as root. A `/pds` created by `scripts/setup.sh` is root-owned, so the server cannot create its data directory until `chown -R 1000:1000 /pds` runs. Litestream and `scripts/backup-files.sh` run as root and only read `/pds`, so they are unaffected, and a switch back to the reference image is safe because root reads anything. That ownership is where upstream is heading rather than a workaround to unwind: the spaces image already runs unprivileged, and the reference distribution will need the same ownership when it adopts the same hardening. The reverse drift is the one to remember — a stretch on the root-run image leaves root-owned files behind, and the chown is re-run before returning to this one.
 
 ## The Staging Proof
 
