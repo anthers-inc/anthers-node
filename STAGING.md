@@ -37,6 +37,10 @@ The app's `scripts/atproto-space-smoke.ts` drives the `SpaceClient` against a ru
 
 The smoke needs no production credentials, writes nothing to a real network, and creates a new account each time.
 
+On 2026-10-25 the pinned image itself was the PDS: `sha256:69f2da2d…` running against a private PLC, reporting `@atproto/pds` 0.5.32. The smoke passed all fourteen checks, and `apps/api/src/__tests__/space-backup-staging.test.ts` passed both of its tests (36 assertions) — capture, delete, restore, and read back through the same client. A space under `org.anthers.userSpace` was created with that space type unpublished, which is the behaviour the vocabulary hold depends on.
+
+The capture still stores the archive as `star.car` with `application/vnd.ipld.car`, and the alpha serves STAR-lite as `application/octet-stream`. Nothing breaks, because a restore replays the record list and the archive is carried opaquely, but the name and content type describe a format the image no longer sends.
+
 ## What the Alpha Changed Under Us
 
 The 2026-10-22 build is not the branch state the lab pinned at `3a0b8c6`, and the differences are the app-side work this pin carries:
