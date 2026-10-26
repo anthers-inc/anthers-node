@@ -26,13 +26,22 @@ set -euo pipefail
 
 PDS_DIR="${PDS_DIR:-/pds}"
 ENV_FILE="${PDS_DIR}/pds.env"
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 LITESTREAM_IMAGE="litestream/litestream:0.5.17"
 AWS_IMAGE="amazon/aws-cli:latest"
 
 die() { echo "  -> ERROR: $*" >&2; exit 1; }
 
 [[ -r "${ENV_FILE}" ]] || die "no ${ENV_FILE}. Restore your off-machine copy of it first — it holds the rotation key, and nothing here can rebuild that."
-set -a; . "${ENV_FILE}"; set +a
+# shellcheck source=scripts/env.sh
+. "${HERE}/env.sh"
+NODE_BACKUP_BUCKET="$(read_env NODE_BACKUP_BUCKET)"
+NODE_BACKUP_ENDPOINT="$(read_env NODE_BACKUP_ENDPOINT)"
+NODE_BACKUP_ACCESS_KEY_ID="$(read_env NODE_BACKUP_ACCESS_KEY_ID)"
+NODE_BACKUP_SECRET_ACCESS_KEY="$(read_env NODE_BACKUP_SECRET_ACCESS_KEY)"
+NODE_BACKUP_PREFIX="$(read_env NODE_BACKUP_PREFIX)"
+NODE_BACKUP_REGION="$(read_env NODE_BACKUP_REGION)"
+PDS_BLOBSTORE_DISK_LOCATION="$(read_env PDS_BLOBSTORE_DISK_LOCATION)"
 
 : "${NODE_BACKUP_BUCKET:?not set in ${ENV_FILE}}"
 : "${NODE_BACKUP_ENDPOINT:?not set in ${ENV_FILE}}"
