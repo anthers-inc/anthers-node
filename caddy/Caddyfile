@@ -13,9 +13,54 @@
 # certificate mill.** Without it, anybody who points a DNS record at this machine makes it
 # request a certificate on their behalf, which is rate-limited by the certificate authority
 # and will eventually take the real names down with it.
+#
+# ⚠️ **The gate is answered by this Caddyfile's own loopback site, not by the server**, and
+# the block below says why: the image some nodes run has no `/tls-check`, and a gate pointed
+# at a route that is not there refuses every name.
 {
 	on_demand_tls {
-		ask http://localhost:3000/tls-check
+		ask http://127.0.0.1:2020/tls-check
+	}
+}
+
+# ─── The on-demand gate ───
+#
+# ⭐ **On-demand TLS asks one question before issuing anything: is this name ours?** The answer
+# has to come from the server's own account table, or any name pointed at this box gets a
+# certificate in our account's name and the certificate authority's weekly limit becomes the
+# lever somebody uses to break renewals for real handles.
+#
+# 🚨 **The gate is answered here, not by the server, because the image this node runs has no
+# `/tls-check`.** `ghcr.io/bluesky-social/atproto:pds-spaces-alpha` carries no such route (the
+# reference distribution's does), so a gate pointed straight at it refuses every name and the
+# whole namespace loses TLS on the next certificate-cache miss. That is not hypothetical: it
+# took `anthers.social` and every handle down for ten minutes on 2026-10-27, when a restart
+# cleared a cache that had been hiding the missing route since the alpha cutover.
+#
+# ⚠️ **The check is still the server's, through a route it does answer.** A handle this server
+# hosts resolves at `/.well-known/atproto-did`, so the gate asks that with the queried name as
+# the Host and passes the answer through: 200 for a handle the account table holds, 404 for
+# anything else. The apex is allowed by name, because `anthers.social` is the service's own
+# address rather than a handle.
+http://127.0.0.1:2020 {
+	@apex {
+		path /tls-check
+		query domain={$PDS_HOSTNAME}
+	}
+	handle @apex {
+		respond "" 200
+	}
+	@ask {
+		path /tls-check
+	}
+	handle @ask {
+		rewrite * /.well-known/atproto-did
+		reverse_proxy 127.0.0.1:3000 {
+			header_up Host {query.domain}
+		}
+	}
+	handle {
+		respond "Not a certificate request this node answers." 403
 	}
 }
 

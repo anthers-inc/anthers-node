@@ -27,6 +27,12 @@
 #
 # ── One thing that is not "no new configuration" ─────────────────────────────────────────
 #
+# 🚨 **Always pass both files, for every compose command, even one that names only another
+# service.** `docker compose up -d caddy` with `compose.yaml` alone reconciles the services
+# that file declares, which includes the `pds` dependency, and recreates it from the
+# reference image — on 2026-10-27 that swapped a live node onto `pds:0.4` for about forty
+# seconds. The override is not a detail of the pds service; it is part of the project.
+#
 # This image runs as `node` (uid 1000). The reference distribution sets no user at all, so
 # it runs as root, and a `/pds` created by `scripts/setup.sh` is root-owned. Before the
 # first start, `/pds` must belong to 1000:1000 or the server cannot write its data
