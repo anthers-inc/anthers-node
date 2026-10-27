@@ -24,7 +24,55 @@
 	tls {
 		on_demand
 	}
-	reverse_proxy http://localhost:3000
+
+	# ─── The front door ───
+	#
+	# ⭐ **The server's own root is ASCII art and a paragraph, and it is the first thing a
+	# stranger meets.** Every account Anthers issues lives on this host, every hosted sign-in
+	# is sent here to authenticate, and the reset mail lands on its account page, so the root
+	# is the one page nobody arrived looking for. This serves a real one at exactly `/`.
+	#
+	# 🚨 **One exact path, and that is the whole scope.** `path /` matches the root and nothing
+	# else, so OAuth, `/xrpc/*`, `/account`, the TLS gate and every handle's own answers keep
+	# going to the server untouched. A matcher that caught a prefix, or a `handle_path` that
+	# rewrote a path, would take the identity server down rather than dress it up, and an
+	# identity server that answers the wrong page is worse than one that answers a plain one.
+	#
+	# ⚠️ **Static, and served from this container rather than the server's.** The page has no
+	# build step and no script, because the host whose job is to answer when the hub does not
+	# is the last place to add a second thing that can be down.
+	#
+	# ⭐ **A node with no page laid down keeps the server's own**, rather than 404ing. This
+	# bundle also runs on a stranger's machine, where a front door reading "every account
+	# Anthers issues lives here" would be false and a hard-coded link to anthers.org/signup
+	# would be somebody else's advert. Dropping a file at /pds/landing/index.html turns the
+	# front door on; leaving that directory empty leaves the node exactly as it was.
+	@frontDoor {
+		host {$PDS_HOSTNAME}
+		path /
+	}
+	handle @frontDoor {
+		encode zstd gzip
+		root * /pds/landing
+		@hasPage file /index.html
+		handle @hasPage {
+			file_server
+			header {
+				# The page changes when somebody edits it, not between requests. Ten
+				# minutes keeps an edit from needing a purge and still answers a reader
+				# instantly.
+				Cache-Control "public, max-age=600"
+				-Server
+			}
+		}
+		handle {
+			reverse_proxy http://localhost:3000
+		}
+	}
+
+	handle {
+		reverse_proxy http://localhost:3000
+	}
 }
 
 # The public status page — served from this droplet on purpose, a failure domain apart

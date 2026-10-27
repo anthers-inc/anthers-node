@@ -24,7 +24,7 @@ hostname="${1:-}"
 [[ -n "${hostname}" ]] || die "usage: $0 <hostname>   e.g. $0 node.example.org"
 
 echo "  -> creating ${PDS_DIR}"
-mkdir -p "${PDS_DIR}"/{blocks,caddy/data,caddy/etc/caddy}
+mkdir -p "${PDS_DIR}"/{blocks,caddy/data,caddy/etc/caddy,landing}
 
 echo "  -> installing the Caddyfile and the replication config"
 install -m 0644 "${HERE}/caddy/Caddyfile" "${PDS_DIR}/caddy/etc/caddy/Caddyfile"
