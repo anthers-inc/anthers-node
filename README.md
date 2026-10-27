@@ -71,6 +71,20 @@ docker compose --profile unattended up -d
 ./scripts/verify-restore.sh          # do not skip this
 ```
 
+## The front door
+
+The root of the node answers with the server's own page, which is ASCII art and a paragraph about what a Personal Data Server is. That is fine for a machine nobody visits and wrong for `anthers.social`, where every account Anthers issues lives, every hosted sign-in is sent to authenticate, and the reset mail lands. `landing/index.html` is that node's replacement, served by Caddy at exactly `/` and nothing else.
+
+⚠️ **Nothing is installed there by `setup.sh`, because this bundle also runs on somebody else's machine.** A front door reading "every account Anthers issues lives here" belongs on Anthers' node, not on a creator's, and the Caddyfile serves the server's own page until a file appears at `/pds/landing/index.html`. Laying the page down turns the front door on; leaving the directory empty changes nothing:
+
+```sh
+sudo install -D -m 0644 landing/index.html /pds/landing/index.html
+```
+
+Two properties are worth keeping if the page is ever rewritten. It is static, with no build step, no script and no font files, because a front door that needs a second service can be down at the moment somebody needs it. And its route is one exact path, so OAuth, `/xrpc/*`, the account page and the TLS gate keep going to the server untouched; a mistake there breaks the front door rather than the identity server.
+
+⚠️ **The container sees only what each bind names.** `/pds/landing` is mounted into the Caddy container for the same reason `/pds/status` is, and forgetting the mount produces a 404 that reads as a broken site. The file alone needs no restart; a change to the compose file needs `docker compose up -d caddy`.
+
 ## Backups, and the file that is easy to miss
 
 Three things need backing up and they want three different mechanisms, which is the part the

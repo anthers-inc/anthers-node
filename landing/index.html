@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Anthers · anthers.social</title>
+<meta name="description" content="The server that holds Anthers accounts and the records they write. Sign in to an account hosted here, or make one at anthers.org.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://anthers.social/">
+<meta property="og:title" content="Anthers · anthers.social">
+<meta property="og:description" content="The server that holds Anthers accounts and the records they write.">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#fdfbf2" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#07110b" media="(prefers-color-scheme: dark)">
+<link rel="icon" href="https://anthers.org/brand/anthers-mark-256.png">
+<style>
+	/* 🚨 **The palette is Meadow's, copied from the site's own tokens rather than
+	   retyped from memory.** `packages/web-shared/src/styles/theme.css` in the Anthers
+	   repository is the source of truth, and it is the same set of values the identity
+	   server's own pages already wear through PDS_PRIMARY_COLOR and friends. A value here
+	   that drifts from that file is a front door that does not match the room behind it.
+
+	   ⚠️ **No build step, no font files, no script.** This page is one file that a static
+	   file server hands out, because the alternative is a second deployment to keep alive on
+	   the one host whose whole job is to answer when the hub does not. */
+	:root {
+		color-scheme: light dark;
+		--surface: oklch(98.6% 0.012 96);
+		--surface-raised: oklch(95.2% 0.024 98);
+		--line: oklch(91.5% 0.035 102);
+		--ink: oklch(31% 0.05 155);
+		--ink-soft: oklch(31% 0.05 155 / 0.74);
+		--green: oklch(49% 0.11 152);
+		--on-green: oklch(98% 0.02 110);
+		--sun: oklch(84% 0.13 92);
+	}
+	@media (prefers-color-scheme: dark) {
+		:root {
+			--surface: oklch(16.5% 0.019 158);
+			--surface-raised: oklch(20.5% 0.022 158);
+			--line: oklch(26% 0.027 158);
+			--ink: oklch(95.5% 0.02 96);
+			--ink-soft: oklch(95.5% 0.02 96 / 0.74);
+			--green: oklch(68% 0.11 152);
+			--on-green: oklch(18% 0.04 155);
+			--sun: oklch(84% 0.11 92);
+		}
+	}
+	* { box-sizing: border-box; }
+	body {
+		margin: 0;
+		min-height: 100dvh;
+		display: flex;
+		flex-direction: column;
+		background-color: var(--surface);
+		background-image: radial-gradient(
+			55rem 38rem at 12% -8%,
+			color-mix(in oklch, var(--sun) 26%, transparent),
+			transparent 70%
+		);
+		color: var(--ink);
+		font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+			"Helvetica Neue", Arial, sans-serif;
+		font-size: 1rem;
+		line-height: 1.65;
+		-webkit-font-smoothing: antialiased;
+	}
+	.site-header,
+	main,
+	.site-footer {
+		width: min(100% - 2.5rem, 34rem);
+		margin-inline: auto;
+	}
+	.site-header {
+		display: flex;
+		align-items: center;
+		gap: 0.6rem;
+		padding-block: 2rem 0;
+	}
+	.site-header img {
+		width: 2.25rem;
+		height: 2.25rem;
+		border-radius: 50%;
+	}
+	.site-header span {
+		font-size: 0.8125rem;
+		font-weight: 600;
+		letter-spacing: 0.14em;
+		text-transform: uppercase;
+		color: var(--ink-soft);
+	}
+	main {
+		flex: 1;
+		padding-block: 2.5rem 3rem;
+	}
+	h1 {
+		margin: 0;
+		font-size: clamp(1.75rem, 5.2vw, 2.5rem);
+		line-height: 1.12;
+		letter-spacing: -0.015em;
+		font-weight: 600;
+		text-wrap: balance;
+	}
+	p {
+		margin: 1.15rem 0 0;
+		color: var(--ink-soft);
+	}
+	p.lead {
+		color: var(--ink);
+		font-size: 1.0625rem;
+	}
+	.actions {
+		display: grid;
+		gap: 0.75rem;
+		margin-top: 2.25rem;
+	}
+	.action {
+		display: grid;
+		gap: 0.2rem;
+		padding: 1rem 1.15rem;
+		border: 1px solid var(--line);
+		border-radius: 0.9rem;
+		background: var(--surface-raised);
+		color: inherit;
+		text-decoration: none;
+		transition: border-color 120ms ease, background-color 120ms ease;
+	}
+	.action:hover {
+		border-color: var(--green);
+	}
+	.action-title {
+		font-weight: 600;
+	}
+	.action-note {
+		font-size: 0.875rem;
+		line-height: 1.5;
+		color: var(--ink-soft);
+	}
+	.action-primary {
+		background: var(--green);
+		border-color: transparent;
+		color: var(--on-green);
+	}
+	.action-primary:hover {
+		background: color-mix(in oklch, var(--green) 88%, var(--ink));
+		border-color: transparent;
+	}
+	.action-primary .action-note {
+		color: color-mix(in oklch, var(--on-green) 82%, transparent);
+	}
+	a:focus-visible {
+		outline: 2px solid var(--green);
+		outline-offset: 3px;
+		border-radius: 0.35rem;
+	}
+	.site-footer {
+		display: grid;
+		gap: 0.85rem;
+		padding-block: 1.5rem 2.5rem;
+		border-top: 1px solid var(--line);
+		font-size: 0.875rem;
+		color: var(--ink-soft);
+	}
+	.site-footer p {
+		margin: 0;
+	}
+	.site-footer nav {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.35rem 1.25rem;
+	}
+	.site-footer a {
+		color: inherit;
+	}
+	code {
+		font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+		font-size: 0.9em;
+	}
+	@media (prefers-reduced-motion: reduce) {
+		.action { transition: none; }
+	}
+</style>
+</head>
+<body>
+<header class="site-header">
+	<img src="https://anthers.org/brand/anthers-mark-256.png" alt="" width="36" height="36">
+	<span>Anthers</span>
+</header>
+
+<main>
+	<h1>Every Account Anthers Issues Lives Here</h1>
+	<p class="lead">
+		This is anthers.social, the server Anthers runs to hold those accounts. Each one is a full
+		identity on the AT Protocol: the handle resolves on the open network, the records stay readable
+		by any app that speaks the protocol, and the account can move to another server with its
+		history intact.
+	</p>
+	<p>
+		There is no feed to scroll here and no profile page to browse. What this server does is answer
+		for the accounts, which is why signing in is the only way to change one.
+	</p>
+
+	<div class="actions">
+		<a class="action action-primary" href="/account">
+			<span class="action-title">Sign In</span>
+			<span class="action-note">For the holder of an account hosted here: the password, the handle, and which apps have access.</span>
+		</a>
+		<a class="action" href="https://anthers.org/signup?utm_source=anthers.social&amp;utm_medium=referral&amp;utm_campaign=external_link">
+			<span class="action-title">Create an Account</span>
+			<span class="action-note">Anthers makes them at anthers.org, which also explains what an account is for.</span>
+		</a>
+	</div>
+</main>
+
+<footer class="site-footer">
+	<p>The server's API answers under <code>/xrpc/</code>, and an app asking for a Personal Data Server takes <code>anthers.social</code> as the answer.</p>
+	<nav>
+		<a href="https://anthers.org?utm_source=anthers.social&amp;utm_medium=referral&amp;utm_campaign=external_link">anthers.org</a>
+		<a href="https://status.anthers.org">Status</a>
+		<a href="https://anthers.org/privacy">Privacy</a>
+		<a href="https://anthers.org/terms">Terms</a>
+		<a href="https://atproto.com">AT Protocol</a>
+	</nav>
+</footer>
+</body>
+</html>

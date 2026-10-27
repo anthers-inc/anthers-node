@@ -71,6 +71,13 @@ services:
       - type: bind
         source: ${PDS_DIR:-/pds}/status
         target: /pds/status
+      # The apex's own front door, for the same reason and with the same trap: the Caddyfile
+      # serves `/` from /pds/landing, and a page laid on the host without this bind is a 404
+      # that looks like a broken site rather than a missing mount.
+      - type: bind
+        source: ${PDS_DIR:-/pds}/landing
+        target: /pds/landing
+        read_only: true
 
   # ─── Continuous backup of every SQLite database under /pds ───
   litestream:
