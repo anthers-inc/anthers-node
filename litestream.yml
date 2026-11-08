@@ -21,6 +21,25 @@
 # ⚠️ **Blobs are not here either, for the opposite reason.** Whatever sits under
 # `PDS_BLOBSTORE_DISK_LOCATION` is large, immutable once written, and wants an object-store
 # sync rather than write-ahead-log replication. `scripts/backup-blobs.sh`.
+
+# ─── Compaction and retention cadence ───
+#
+# ⭐ **Slower than the defaults on purpose.** Every level's compaction monitor and the L0
+# retention sweep list the whole remote inventory on a timer, whether or not a database
+# changed. At the defaults (L0 swept every 15s, L1 compacted every 30s) this node's 2.4 MiB
+# of LTX files cost roughly 100k R2 Class A operations a day, because the active database
+# alone keeps thousands of L1 files and each list is five pages. These intervals keep every
+# level's inventory to a few hundred files, so each list is one page, for an estimated ~24k
+# operations a day. The sync interval is untouched at its 1s default, so the newest-write
+# RPO is unchanged; what gets coarser is restore granularity older than the 15-minute L0
+# window.
+l0-retention: 15m
+l0-retention-check-interval: 1m
+levels:
+  - interval: 5m
+  - interval: 30m
+  - interval: 6h
+
 dbs:
   - dir: /pds
     pattern: "*.sqlite"
